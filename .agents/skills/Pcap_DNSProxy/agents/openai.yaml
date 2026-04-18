@@ -1,0 +1,6 @@
+interface:
+  display_name: "Pcap DNSProxy"
+  short_description: "Repo-specific patterns and workflows for Pcap_DNSProxy"
+  default_prompt: "Use the Pcap_DNSProxy repo skill to follow existing architecture, testing, and workflow conventions."
+policy:
+  allow_implicit_invocation: true
