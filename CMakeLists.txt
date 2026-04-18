@@ -16,9 +16,26 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-
 # CMake minimum version
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.5)
+
+# Project name
+project(Pcap_DNSProxy)
+
+# Policy settings for newer CMake versions
+if(POLICY CMP0069)
+    cmake_policy(SET CMP0069 NEW) # INTERPROCEDURAL_OPTIMIZATION
+endif()
+
+# C++ standard
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Build type default
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose the type of build." FORCE)
+endif()
 
 # Sub directories
 add_subdirectory(Source/Pcap_DNSProxy)

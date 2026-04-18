@@ -1,0 +1,5 @@
+/app/build/CMakeFiles/edit_cache.dir
+/app/build/CMakeFiles/rebuild_cache.dir
+/app/build/Source/Pcap_DNSProxy/CMakeFiles/Pcap_DNSProxy.dir
+/app/build/Source/Pcap_DNSProxy/CMakeFiles/edit_cache.dir
+/app/build/Source/Pcap_DNSProxy/CMakeFiles/rebuild_cache.dir
