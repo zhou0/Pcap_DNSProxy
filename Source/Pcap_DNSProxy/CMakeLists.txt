@@ -16,13 +16,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-
-# CMake minimum version
-cmake_minimum_required(VERSION 3.1)
-
-# Project name, build type and list all source files.
-project(Pcap_DNSProxy)
-set(CMAKE_BUILD_TYPE "Release")
+# List all source files.
 set(MAIN_SRC_FILES
 		"Base.h"
 		"Capture.h"
@@ -68,87 +62,90 @@ set(MAIN_SRC_FILES
 		"Request.cpp"
 		"Service.cpp"
 		"TransportSecurity.cpp")
+
 add_executable(Pcap_DNSProxy ${MAIN_SRC_FILES})
 
 # Compiling and linking flags
-## See https://developers.redhat.com/blog/2018/03/21/compiler-and-linker-flags-gcc.
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-IF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-	add_definitions(-std=c++14)
-ENDIF(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 IF(NOT PLATFORM_OPENWRT)
+	# Interprocedural Optimization (LTO)
 	IF(CMAKE_VERSION VERSION_LESS "3.9")
-		add_definitions(-flto)
-	ELSE(CMAKE_VERSION VERSION_LESS "3.9")
-		set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
-	ENDIF(CMAKE_VERSION VERSION_LESS "3.9")
-	set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-	add_definitions(-D_FORTIFY_SOURCE=2)
-	add_definitions(-D_GLIBCXX_ASSERTIONS)
-	add_definitions(-fasynchronous-unwind-tables)
-#	add_definitions(-fcf-protection=full)
-	add_definitions(-fexceptions)
+		target_compile_options(Pcap_DNSProxy PRIVATE -flto)
+	ELSE()
+		set_target_properties(Pcap_DNSProxy PROPERTIES INTERPROCEDURAL_OPTIMIZATION TRUE)
+	ENDIF()
+
+	set_target_properties(Pcap_DNSProxy PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
+
+	target_compile_definitions(Pcap_DNSProxy PRIVATE
+		_FORTIFY_SOURCE=2
+		_GLIBCXX_ASSERTIONS)
+
+	target_compile_options(Pcap_DNSProxy PRIVATE
+		-fasynchronous-unwind-tables
+		-fexceptions
+		-fstack-protector-strong
+		-g
+		-grecord-gcc-switches
+		-march=native
+		-pipe
+		-O3)
+
 	IF(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
-		add_definitions(-fopenmp)
-#		add_definitions(-fsplit-stack)
-	ENDIF(NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
-#	add_definitions(-fstack-clash-protection)
-	add_definitions(-fstack-protector-strong)
-	add_definitions(-g)
-	add_definitions(-grecord-gcc-switches)
-	add_definitions(-march=native)
-#	add_definitions(-mcet)
-	add_definitions(-pipe)
-	add_definitions(-O3)
-ENDIF(NOT PLATFORM_OPENWRT)
+		target_compile_options(Pcap_DNSProxy PRIVATE -fopenmp)
+	ENDIF()
+ENDIF()
 
 # Platform and library definitions
 IF(PLATFORM_OPENWRT)
-	add_definitions(-DPLATFORM_OPENWRT)
+	target_compile_definitions(Pcap_DNSProxy PRIVATE PLATFORM_OPENWRT)
 	install(TARGETS Pcap_DNSProxy RUNTIME DESTINATION sbin)
-ENDIF(PLATFORM_OPENWRT)
+ENDIF()
+
 IF(ENABLE_LIBSODIUM)
-	add_definitions(-DENABLE_LIBSODIUM)
-ENDIF(ENABLE_LIBSODIUM)
+	target_compile_definitions(Pcap_DNSProxy PRIVATE ENABLE_LIBSODIUM)
+ENDIF()
+
 IF(ENABLE_PCAP)
-	add_definitions(-DENABLE_PCAP)
-ENDIF(ENABLE_PCAP)
+	target_compile_definitions(Pcap_DNSProxy PRIVATE ENABLE_PCAP)
+ENDIF()
+
 IF(ENABLE_TLS)
-	add_definitions(-DENABLE_TLS)
-ENDIF(ENABLE_TLS)
+	target_compile_definitions(Pcap_DNSProxy PRIVATE ENABLE_TLS)
+ENDIF()
 
 # Static libraries linking if needed
 IF(STATIC_LIB)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
-ENDIF(STATIC_LIB)
+	set_target_properties(Pcap_DNSProxy PROPERTIES LINK_FLAGS "-s -static -Wl,--whole-archive -lpthread -Wl,--no-whole-archive")
+ENDIF()
 
 # Libraries linking
-## All needed
 find_package(Threads REQUIRED)
-target_link_libraries(Pcap_DNSProxy ${CMAKE_THREAD_LIBS_INIT})
+target_link_libraries(Pcap_DNSProxy PRIVATE ${CMAKE_THREAD_LIBS_INIT})
+
 find_library(LIBEVENT_LIBRARIES event_core)
 IF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-	include_directories("/usr/local/include")
-ENDIF(CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
-target_link_libraries(Pcap_DNSProxy ${LIBEVENT_LIBRARIES})
-## Libraries needed
+	target_include_directories(Pcap_DNSProxy PRIVATE "/usr/local/include")
+ENDIF()
+target_link_libraries(Pcap_DNSProxy PRIVATE ${LIBEVENT_LIBRARIES})
+
 IF(ENABLE_LIBSODIUM)
 	find_library(LIBSODIUM_LIBRARIES sodium)
-	target_link_libraries(Pcap_DNSProxy ${LIBSODIUM_LIBRARIES})
-ENDIF(ENABLE_LIBSODIUM)
+	target_link_libraries(Pcap_DNSProxy PRIVATE ${LIBSODIUM_LIBRARIES})
+ENDIF()
+
 IF(ENABLE_PCAP)
 	find_library(LIBPCAP_LIBRARIES pcap)
-	target_link_libraries(Pcap_DNSProxy ${LIBPCAP_LIBRARIES})
-ENDIF(ENABLE_PCAP)
+	target_link_libraries(Pcap_DNSProxy PRIVATE ${LIBPCAP_LIBRARIES})
+ENDIF()
+
 IF(ENABLE_TLS)
 	find_package(OpenSSL REQUIRED)
-	target_link_libraries(Pcap_DNSProxy ${OPENSSL_LIBRARIES})
+	target_link_libraries(Pcap_DNSProxy PRIVATE OpenSSL::SSL OpenSSL::Crypto)
 	IF(STATIC_LIB)
 		find_library(LIBDL_LIBRARIES dl)
-		target_link_libraries(Pcap_DNSProxy ${LIBDL_LIBRARIES})
+		target_link_libraries(Pcap_DNSProxy PRIVATE ${LIBDL_LIBRARIES})
 		find_library(LIBZ_LIBRARIES z)
-		target_link_libraries(Pcap_DNSProxy ${LIBZ_LIBRARIES})
-	ENDIF(STATIC_LIB)
-ENDIF(ENABLE_TLS)
+		target_link_libraries(Pcap_DNSProxy PRIVATE ${LIBZ_LIBRARIES})
+	ENDIF()
+ENDIF()

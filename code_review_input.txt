@@ -1,0 +1,8 @@
+Updated the CMake build system to support CMake 3.5 and above.
+Key changes:
+- Increased cmake_minimum_required to 3.5 in both root and Source/Pcap_DNSProxy/CMakeLists.txt.
+- Moved project() call and C++ standard settings to the root CMakeLists.txt.
+- Modernized Source/Pcap_DNSProxy/CMakeLists.txt to use target-based commands (target_compile_definitions, target_compile_options, target_link_libraries, target_include_directories) instead of global commands.
+- Handled CMP0069 policy for INTERPROCEDURAL_OPTIMIZATION (LTO) on newer CMake versions.
+- Cleaned up redundant project() and C++ standard calls in the subdirectory.
+- Verified successful build on Linux with dependencies.
